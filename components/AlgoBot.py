@@ -70,14 +70,21 @@ class Bot:
                     yield (i, j, board.get_valid_legal_moves(i, j, self.game.continue_playing))
 
     
-    def group1(self,board):
-        random_move, random_choice = group1(self,board)
-        self.move(random_move, random_choice, board)
+    def group1(self, board):
+        current_pos, final_pos = group1(self, board)
+        if current_pos and final_pos:
+            self.move(current_pos, final_pos, board)
+        else:
+            self.game.end_turn()
         return
     
-    def group2(self,board):
-        random_move, random_choice = group2(self,board)
-        self.move(random_move, random_choice, board)
+    def group2(self, board):
+        move = group2(self, board)
+        if move:
+            current_pos, final_pos = move
+            self.move(current_pos, final_pos, board)
+        else:
+            self.game.end_turn()
         return
     
 

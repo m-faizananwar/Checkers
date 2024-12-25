@@ -1,6 +1,7 @@
 # Import the Game class from the GuiHandler module and the Bot class from the gamebot module---
 from PyQt5.QtGui import QPixmap, QBrush, QPalette
-
+from pygame import *
+import pygame
 from components.GuiHandler import Game
 from components.AlgoBot import Bot
 
@@ -50,9 +51,46 @@ def play_game_player_vs_ai(ai_method):
     from time import sleep
     ai_color = PURPLE  # AI controls Purple
     bot = Bot(game, ai_color, method=ai_method)
-    while not game.endGame:
+    running = True
+
+    while not game.endGame and running:
         if game.turn == ai_color:
             bot.step(game.board)
+        else:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    running = False
+                elif event.type == MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()
+                    board_pos = game.graphics.board_coords(x, y)
+                    if game.selected_piece is None:
+                        piece = game.board.getSquare(board_pos[0], board_pos[1]).squarePiece
+                        if piece and piece.color == game.turn:
+                            game.selected_piece = board_pos
+                            game.selected_legal_moves = game.board.get_valid_legal_moves(
+                                board_pos[0], board_pos[1], game.continue_playing
+                            )
+                    else:
+                        if board_pos in game.selected_legal_moves:
+                            game.board.move_piece(
+                                game.selected_piece[0], game.selected_piece[1],
+                                board_pos[0], board_pos[1]
+                            )
+                            if board_pos not in game.board.getAdjacentSquares(
+                                    game.selected_piece[0], game.selected_piece[1]):
+                                capture_x = game.selected_piece[0] + (board_pos[0] - game.selected_piece[0]) // 2
+                                capture_y = game.selected_piece[1] + (board_pos[1] - game.selected_piece[1]) // 2
+                                game.board.remove_piece(capture_x, capture_y)
+                                new_moves = game.board.get_valid_legal_moves(board_pos[0], board_pos[1], True)
+                                if new_moves:
+                                    game.selected_piece = board_pos
+                                    game.selected_legal_moves = new_moves
+                                    game.continue_playing = True
+                                    continue
+                            game.end_turn()
+                        else:
+                            game.selected_piece = None
+                            game.selected_legal_moves = []
         game.update()
         sleep(0.0999)
     sleep(2)

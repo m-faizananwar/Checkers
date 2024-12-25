@@ -5,8 +5,7 @@ def group1(self, board):
     tr_table = {}
     def minimax(board, depth, alpha, beta, max_player):
         board_hash = hash(str(board.matrix))  
-        if board_hash in tr_table and \
-           tr_table[board_hash][1] >= depth:
+        if board_hash in tr_table and tr_table[board_hash][1] >= depth:
             return tr_table[board_hash][0], None, None
 
         if depth == 0 or self.endGameCheck(board):
@@ -22,44 +21,41 @@ def group1(self, board):
                 possible_moves.sort(key=lambda move: abs(move[0] - 7) if self.color == PURPLE 
                                      else abs(move[0] - 0), reverse=True)  
                 for final_pos in possible_moves:
+                    # Apply the move
                     new_board = deepcopy(board)
-                    self.moveOnBoard(new_board, current_pos, final_pos)
-                    eval = minimax(new_board, depth - 1, alpha, beta, False)[0]
-                    max_eval = max(max_eval, eval)
+                    new_board.move_piece(row, col, final_pos[0], final_pos[1])
+                    eval, _, _ = minimax(new_board, depth-1, alpha, beta, False)
+                    if eval > max_eval:
+                        max_eval = eval
+                        best_move = (current_pos, final_pos)
                     alpha = max(alpha, eval)
                     if beta <= alpha:
                         break
-                    if max_eval == eval:
-                        best_move = (current_pos, final_pos)
-                if beta <= alpha:
-                    break
             tr_table[board_hash] = (max_eval, depth)
-            return max_eval, best_move[0], best_move[1]
+            return max_eval, best_move[0], best_move[1] if best_move else (None, None)
         else:
             min_eval = float('inf')
             best_move = None
-            for current_pos, possible_moves in self.generatemove_at_a_time(board):
-                possible_moves.sort(key=lambda move: abs(move[0] - 7) if self.opponent_color == PURPLE 
-                                     else abs(move[0] - 0), reverse=True)  
+            for row, col, possible_moves in self.generatemove_at_a_time(board):
+                current_pos = (row, col)
                 for final_pos in possible_moves:
+                    # Apply the move
                     new_board = deepcopy(board)
-                    self.moveOnBoard(new_board, current_pos, final_pos)
-                    eval = minimax(new_board, depth - 1, alpha, beta, True)[0]
-                    min_eval = min(min_eval, eval)
+                    new_board.move_piece(row, col, final_pos[0], final_pos[1])
+                    eval, _, _ = minimax(new_board, depth-1, alpha, beta, True)
+                    if eval < min_eval:
+                        min_eval = eval
+                        best_move = (current_pos, final_pos)
                     beta = min(beta, eval)
                     if beta <= alpha:
                         break
-                    if min_eval == eval:
-                        best_move = (current_pos, final_pos)
-                if beta <= alpha:
-                    break
             tr_table[board_hash] = (min_eval, depth)
-            return min_eval, best_move[0], best_move[1]
-    _, current_pos, final_pos = minimax(board,self.depth, float('-inf'), float('inf'), True)
+            return min_eval, best_move[0], best_move[1] if best_move else (None, None)
     
+    _, current_pos, final_pos = minimax(board, self.depth, float('-inf'), float('inf'), True)
 
     if current_pos is None or final_pos is None:
         self.game.end_turn()
-        return
-    
+        return None, None
+
     return current_pos, final_pos
