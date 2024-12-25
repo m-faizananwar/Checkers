@@ -295,10 +295,55 @@ class Game:
 
 	def main(self):
 		self.setup()
+		running = True
+		while running:
+			for event in pygame.event.get():
+				if event.type == QUIT:
+					running = False
+				elif event.type == MOUSEBUTTONDOWN:
+					x, y = pygame.mouse.get_pos()
+					board_pos = self.graphics.board_coords(x, y)
 
-		while True: # main game loop
-			self.player_turn()
+					if self.selected_piece is None:
+						# Select piece if it belongs to current player
+						piece = self.board.getSquare(board_pos[0], board_pos[1]).squarePiece
+						if piece and piece.color == self.turn:
+							self.selected_piece = board_pos
+							self.selected_legal_moves = self.board.get_valid_legal_moves(
+								board_pos[0], board_pos[1], self.continue_playing
+							)
+					else:
+						# If user clicked on a valid destination
+						if board_pos in self.selected_legal_moves:
+							self.board.move_piece(
+								self.selected_piece[0], self.selected_piece[1],
+								board_pos[0], board_pos[1]
+							)
+
+							# If it was a capture, remove the piece in between & allow chaining
+							if board_pos not in self.board.getAdjacentSquares(
+									self.selected_piece[0], self.selected_piece[1]):
+								capture_x = self.selected_piece[0] + (board_pos[0] - self.selected_piece[0]) // 2
+								capture_y = self.selected_piece[1] + (board_pos[1] - self.selected_piece[1]) // 2
+								self.board.remove_piece(capture_x, capture_y)
+
+								# Look for another capture
+								new_moves = self.board.get_valid_legal_moves(board_pos[0], board_pos[1], True)
+								if new_moves:
+									self.selected_piece = board_pos
+									self.selected_legal_moves = new_moves
+									self.continue_playing = True
+									continue
+							# If no further capture, end turn
+							self.end_turn()
+						else:
+							# If clicked invalid destination or new piece
+							self.selected_piece = None
+							self.selected_legal_moves = []
 			self.update()
+			if self.endGame:
+				running = False
+		self.terminate_game()
 
 	def end_turn(self):
 		if self.turn == GREY:
