@@ -234,6 +234,7 @@ class Graphics:
 		if hasattr(pygame, 'game_instance'):  # Just an example approach
 			g = pygame.game_instance
 			self.draw_sideboard(g.purple_score, g.grey_score, g.purple_prob, g.grey_prob)
+			print(g.purple_score, g.grey_score, g.purple_prob, g.grey_prob)
 		else:
 			self.draw_sideboard(0, 0, 50, 50)
 
@@ -323,6 +324,8 @@ class Game:
 		self.grey_score = 0
 		self.purple_prob = 50
 		self.grey_prob = 50
+		self.purple_captures = 0
+		self.grey_captures = 0
 
 	def setup(self):
 		self.graphics.setup_window()
@@ -336,6 +339,7 @@ class Game:
 
 	def main(self):
 		self.setup()
+		pygame.game_instance = self  # Set the game instance for access in Graphics
 		running = True
 		while running:
 			for event in pygame.event.get():
@@ -478,15 +482,31 @@ class Game:
 		self.current_score[capturing_color.lower()] += 8  # 8 points for
 
 	def update_scores_and_probability(self, capturing_color):
-		# Increase score for capturing_color:
+		 # Use captures to track how many pieces each side has taken
 		if capturing_color == PURPLE:
-			self.purple_score += 5
+			self.purple_captures += 1
 		else:
-			self.grey_score += 5
-		# Maintain a simple ratio-based probability:
+			self.grey_captures += 1
+
+		# Recount how many pieces each side still has
+		purple_pieces = 0
+		grey_pieces = 0
+		for x in range(8):
+			for y in range(8):
+				piece = self.board.getSquare(x, y).squarePiece
+				if piece:
+					if piece.color == PURPLE:
+						purple_pieces += 1
+					else:
+						grey_pieces += 1
+
+		# Final score = pieces on board + captures×8
+		self.purple_score = self.purple_captures * 8
+		self.grey_score = self.grey_captures * 8
+
+		# Probability = ratio of scores
 		total = max(self.purple_score + self.grey_score, 1)
 		self.purple_prob = int((self.purple_score / total) * 100)
 		self.grey_prob = 100 - self.purple_prob
-
 		print(f"[LOG] Scores => Purple: {self.purple_score}, Grey: {self.grey_score}")
 		print(f"[LOG] Probability => Purple: {self.purple_prob}%, Grey: {self.grey_prob}%")

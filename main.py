@@ -19,12 +19,10 @@ GREY = (128, 128, 128)
 PURPLE = (178, 102, 255)
 # Define a function to play the game
 def play_game(Method1,Method2):
-    # Create a new game object and set it up for play
     game = Game(loop_mode=True)
+    pygame.game_instance = game  # Set the game instance for access in Graphics
     game.setup()
-    # Create a red bot and a blue bot with their respective evaluation methods and search algorithms
     purple_bot = Bot(game, PURPLE, method=Method1)
-
     grey_bot = Bot(game, GREY, method=Method2)
     start_time = time.time()
 
@@ -47,6 +45,7 @@ def play_game_player_vs_player():
 
 def play_game_player_vs_ai(ai_method):
     game = Game(loop_mode=True)
+    pygame.game_instance = game  # Set the game instance for access in Graphics
     game.setup()
     ai_color = PURPLE  # AI controls Purple
     bot = Bot(game, ai_color, method=ai_method)
@@ -82,6 +81,7 @@ def play_game_player_vs_ai(ai_method):
                                 capture_x = game.selected_piece[0] + (board_pos[0] - game.selected_piece[0]) // 2
                                 capture_y = game.selected_piece[1] + (board_pos[1] - game.selected_piece[1]) // 2
                                 game.board.remove_piece(capture_x, capture_y)
+                                game.update_scores_and_probability(game.turn)  # Update scores and probability
                                 new_moves = game.board.get_valid_legal_moves(board_pos[0], board_pos[1], True)
                                 if new_moves:
                                     game.selected_piece = board_pos
