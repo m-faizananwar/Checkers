@@ -48,7 +48,6 @@ def play_game_player_vs_player():
 def play_game_player_vs_ai(ai_method):
     game = Game(loop_mode=True)
     game.setup()
-    from time import sleep
     ai_color = PURPLE  # AI controls Purple
     bot = Bot(game, ai_color, method=ai_method)
     running = True
@@ -56,11 +55,13 @@ def play_game_player_vs_ai(ai_method):
     while not game.endGame and running:
         if game.turn == ai_color:
             bot.step(game.board)
-        else:
+            game.update()
+            sleep(0.0999)
+        else:  # Player's turn
             for event in pygame.event.get():
                 if event.type == QUIT:
                     running = False
-                elif event.type == MOUSEBUTTONDOWN:
+                elif event.type == MOUSEBUTTONDOWN and game.turn != ai_color:  # Only allow moves on player's turn
                     x, y = pygame.mouse.get_pos()
                     board_pos = game.graphics.board_coords(x, y)
                     if game.selected_piece is None:

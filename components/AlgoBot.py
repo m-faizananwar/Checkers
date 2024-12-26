@@ -71,6 +71,8 @@ class Bot:
 
     
     def group1(self, board):
+        if self.game.turn != self.color:  # Only move if it's this AI's turn
+            return
         current_pos, final_pos = group1(self, board)
         if current_pos and final_pos:
             self.move(current_pos, final_pos, board)
@@ -79,6 +81,8 @@ class Bot:
         return
     
     def group2(self, board):
+        if self.game.turn != self.color:  # Only move if it's this AI's turn
+            return
         move = group2(self, board)
         if move:
             current_pos, final_pos = move
@@ -89,67 +93,29 @@ class Bot:
     
 
     def move(self, current_pos, final_pos, board):
-        # If the current position is None, end the turn
-        if current_pos is None:
+        if current_pos is None or final_pos is None:
             self.game.end_turn()
+            return
 
-        # If the game is over, check if the final position is occupied by a friendly piece
-        if self.game.continue_playing == False:
-            if board.getSquare(final_pos[0], final_pos[1]).squarePiece is not None and board.getSquare(final_pos[0],
-                                                                                                       final_pos[
-                                                                                                           1]).squarePiece.color == self.game.turn:
-                # If it is, update the current position
-                current_pos = final_pos
-
-            # Otherwise, if the final position is a valid legal move from the current position, make the move
-            elif current_pos != None and final_pos in board.get_valid_legal_moves(current_pos[0], current_pos[1]):
-                board.move_piece(
-                    current_pos[0], current_pos[1], final_pos[0], final_pos[1])
-
-                # If the move is a capture, remove the captured piece and allow the player to continue making moves
-                if final_pos not in board.getAdjacentSquares(current_pos[0], current_pos[1]):
-                    board.remove_piece(current_pos[0] + (final_pos[0] - current_pos[0]) //
-                                       2, current_pos[1] + (final_pos[1] - current_pos[1]) // 2)
-                    self.game.continue_playing = True
-
-                # Update the current position and check if the player can make another move
-                current_pos = final_pos
-                final_pos = board.get_valid_legal_moves(
-                    current_pos[0], current_pos[1], True)
-                if final_pos != []:
-                    self.move(current_pos, final_pos[0], board)
-
-                # End the turn
+        if final_pos in board.get_valid_legal_moves(current_pos[0], current_pos[1], self.game.continue_playing):
+            # Make the move
+            board.move_piece(current_pos[0], current_pos[1], final_pos[0], final_pos[1])
+            
+            # If it was a capture
+            if final_pos not in board.getAdjacentSquares(current_pos[0], current_pos[1]):
+                board.remove_piece(
+                    current_pos[0] + (final_pos[0] - current_pos[0]) // 2,
+                    current_pos[1] + (final_pos[1] - current_pos[1]) // 2
+                )
+                
+                # Check for additional captures
+                new_moves = board.get_valid_legal_moves(final_pos[0], final_pos[1], True)
+                if not new_moves:  # No more captures available
+                    self.game.end_turn()
+            else:  # Regular move (no capture)
                 self.game.end_turn()
-
-        # If the player can continue making moves, check if the final position is a valid legal move
-        if self.game.continue_playing == True:
-            if current_pos != None and final_pos in board.get_valid_legal_moves(current_pos[0], current_pos[1],
-                                                                                self.game.continue_playing):
-                board.move_piece(
-                    current_pos[0], current_pos[1], final_pos[0], final_pos[1])
-
-                # If the move is a capture, remove the captured piece
-                board.remove_piece(current_pos[0] + (final_pos[0] - current_pos[0]) //
-                                   2, current_pos[1] + (final_pos[1] - current_pos[1]) // 2)
-
-            # Check if the player can make another move or if the turn should end
-            if board.get_valid_legal_moves(final_pos[0], final_pos[1], self.game.continue_playing) == []:
-                self.game.end_turn()
-            else:
-                # Update the current position and check if the player can make another move
-                current_pos = final_pos
-                final_pos = board.get_valid_legal_moves(
-                    current_pos[0], current_pos[1], True)
-                if final_pos != []:
-                    self.move(current_pos, final_pos[0], board)
-
-                # End the turn
-                self.game.end_turn()
-
-        # If the game is over, switch to the opponent's turn
-        if self.game.continue_playing != True:
-            self.game.turn = self.opponent_color
+        else:
+            self.game.end_turn()
 
     def moveOnBoard(self, board, current_pos, final_pos, continue_playing=False):
         # If continue_playing is False, check if the final position is occupied by a friendly piece

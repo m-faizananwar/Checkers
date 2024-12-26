@@ -2,6 +2,9 @@
 from copy import deepcopy
 PURPLE = (178, 102, 255)  
 def group1(self, board):
+    if self.game.turn != self.color:  # Only move if it's this AI's turn
+        return None, None
+
     tr_table = {}
     def minimax(board, depth, alpha, beta, max_player):
         board_hash = hash(str(board.matrix))  
@@ -55,7 +58,9 @@ def group1(self, board):
     _, current_pos, final_pos = minimax(board, self.depth, float('-inf'), float('inf'), True)
 
     if current_pos is None or final_pos is None:
-        self.game.end_turn()
         return None, None
 
-    return current_pos, final_pos
+    # Validate move
+    if final_pos in board.get_valid_legal_moves(current_pos[0], current_pos[1], self.game.continue_playing):
+        return current_pos, final_pos
+    return None, None
