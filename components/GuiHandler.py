@@ -43,6 +43,9 @@ class Board:
 
 
 	def remove_piece(self, x, y):
+		captured_piece = self.matrix[x][y].squarePiece
+		if captured_piece:
+			print(f"[LOG] Piece taken from ({x},{y}) - Color: {captured_piece.color}")
 		self.matrix[x][y].squarePiece = None
 
 	def move_piece(self, start_x, start_y, end_x, end_y):
@@ -213,6 +216,10 @@ class Graphics:
 
 	def update_display(self, board, legal_moves, selected_piece):
 
+		# Extended window size to accommodate sideboard
+		if self.screen.get_width() == self.window_size:
+			self.screen = pygame.display.set_mode((self.window_size + 200, self.window_size))
+
 		self.screen.blit(self.background, (0,0))
 
 		self.highlight_squares(legal_moves, selected_piece)
@@ -220,6 +227,15 @@ class Graphics:
 
 		if self.message:
 			self.screen.blit(self.text_surface_obj, self.text_rect_obj)
+
+		# Draw sideboard with current scores and probabilities
+		# For demonstration, use the values from the main Game instance if needed
+		# In real usage, pass them as parameters or store them globally
+		if hasattr(pygame, 'game_instance'):  # Just an example approach
+			g = pygame.game_instance
+			self.draw_sideboard(g.purple_score, g.grey_score, g.purple_prob, g.grey_prob)
+		else:
+			self.draw_sideboard(0, 0, 50, 50)
 
 		pygame.display.update()
 		self.clock.tick(self.fps)
@@ -240,8 +256,29 @@ class Graphics:
 					if board.getSquare(x, y).squarePiece.king == True:
 						pygame.draw.circle(self.screen, GOLD, self.pixel_coords((x, y)), int(self.piece_size // 1.7), self.piece_size // 4)
 
+	def draw_sideboard(self, purple_score, grey_score, purple_prob, grey_prob):
+		# Simple sideboard rectangle on the right
+		sideboard_x = self.window_size
+		sideboard_width = 200
+		pygame.draw.rect(self.screen, (50, 50, 50), (sideboard_x, 0, sideboard_width, self.window_size))
+		font = pygame.font.SysFont(None, 24)
 
+		# Display scores
+		purple_text = font.render(f"Purple Score: {purple_score}", True, (255,255,255))
+		grey_text = font.render(f"Grey Score: {grey_score}", True, (255,255,255))
+		self.screen.blit(purple_text, (sideboard_x + 10, 50))
+		self.screen.blit(grey_text, (sideboard_x + 10, 80))
 
+		# Simple horizontal progress bar
+		bar_y = 150
+		bar_height = 20
+		pygame.draw.rect(self.screen, (255, 255, 255), (sideboard_x + 10, bar_y, sideboard_width - 20, bar_height), 2)
+		# Purple portion
+		purple_bar_width = int((purple_prob / 100) * (sideboard_width - 20))
+		pygame.draw.rect(self.screen, PURPLE, (sideboard_x + 10, bar_y, purple_bar_width, bar_height))
+		# Grey portion (draw from the right side)
+		grey_bar_width = (sideboard_width - 20) - purple_bar_width
+		pygame.draw.rect(self.screen, GREY, (sideboard_x + 10 + purple_bar_width, bar_y, grey_bar_width, bar_height))
 
 
 
@@ -282,6 +319,10 @@ class Game:
 		self.continue_playing = False
 		self.loop_mode = loop_mode
 		self.selected_legal_moves = []
+		self.purple_score = 0
+		self.grey_score = 0
+		self.purple_prob = 50
+		self.grey_prob = 50
 
 	def setup(self):
 		self.graphics.setup_window()
@@ -326,6 +367,9 @@ class Game:
 								capture_x = self.selected_piece[0] + (board_pos[0] - self.selected_piece[0]) // 2
 								capture_y = self.selected_piece[1] + (board_pos[1] - self.selected_piece[1]) // 2
 								self.board.remove_piece(capture_x, capture_y)
+
+								# Log capture & update score/probability
+								self.update_scores_and_probability(self.turn)
 
 								# Look for another capture
 								new_moves = self.board.get_valid_legal_moves(board_pos[0], board_pos[1], True)
@@ -373,3 +417,76 @@ class Game:
 						return False
 
 		return True
+	
+	def calculate_scores(self):
+		purple_pieces = grey_pieces = 0
+		purple_kings = grey_kings = 0
+		
+		# Count current pieces and kings
+		for x in range(8):
+			for y in range(8):
+				piece = self.board.getSquare(x, y).squarePiece
+				if piece:
+					if piece.color == PURPLE:
+						purple_pieces += 1
+						if piece.king:
+							purple_kings += 1
+							pos = (x, y)
+							if pos not in self.kings['purple']:
+								self.kings['purple'].add(pos)
+								self.current_score['purple'] += 50  # Bonus for new king
+					else:
+						grey_pieces += 1
+						if piece.king:
+							grey_kings += 1
+							pos = (x, y)
+							if pos not in self.kings['grey']:
+								self.kings['grey'].add(pos)
+								self.current_score['grey'] += 50  # Bonus for new king
+		# Update scores (8 points per piece)
+		self.purple_score = purple_pieces * 8 + len(self.kings['purple']) * 50 + self.captured_pieces['purple'] * 8
+		self.grey_score = grey_pieces * 8 + len(self.kings['grey']) * 50 + self.captured_pieces['grey'] * 8
+		# Calculate probabilities based on piece count and position
+		total_pieces = max(purple_pieces + grey_pieces, 1)
+		base_purple_prob = (purple_pieces / total_pieces) * 100
+		base_grey_prob = (grey_pieces / total_pieces) * 100
+		# Adjust probabilities based on kings and captures
+		king_factor = (purple_kings - grey_kings) * 5
+		capture_factor = (self.captured_pieces['purple'] - self.captured_pieces['grey']) * 2
+		# Calculate final probabilities (rounded to nearest integer)
+		self.purple_prob = min(max(int(base_purple_prob + king_factor + capture_factor), 5), 95)
+		self.grey_prob = 100 - self.purple_prob
+	def calculate_position_bonus(self):
+		bonus = 0
+		for x in range(8):
+			for y in range(8):
+				piece = self.board.getSquare(x, y).squarePiece
+				if piece:
+					if piece.color == PURPLE:
+						if y > 4:  # Advanced position
+							bonus += 0.1
+						if piece.king and y > 5:  # Advanced king
+							bonus += 0.2
+					else:
+						if y < 3:  # Advanced position
+							bonus -= 0.1
+						if piece.king and y < 2:  # Advanced king
+							bonus -= 0.2
+		return max(min(bonus, 1), -1)  # Normalize between -1 and 1
+	def update_capture(self, capturing_color):
+		self.captured_pieces[capturing_color.lower()] += 1
+		self.current_score[capturing_color.lower()] += 8  # 8 points for
+
+	def update_scores_and_probability(self, capturing_color):
+		# Increase score for capturing_color:
+		if capturing_color == PURPLE:
+			self.purple_score += 5
+		else:
+			self.grey_score += 5
+		# Maintain a simple ratio-based probability:
+		total = max(self.purple_score + self.grey_score, 1)
+		self.purple_prob = int((self.purple_score / total) * 100)
+		self.grey_prob = 100 - self.purple_prob
+
+		print(f"[LOG] Scores => Purple: {self.purple_score}, Grey: {self.grey_score}")
+		print(f"[LOG] Probability => Purple: {self.purple_prob}%, Grey: {self.grey_prob}%")
