@@ -422,91 +422,33 @@ class Game:
 
 		return True
 	
-	def calculate_scores(self):
-		purple_pieces = grey_pieces = 0
-		purple_kings = grey_kings = 0
-		
-		# Count current pieces and kings
-		for x in range(8):
-			for y in range(8):
-				piece = self.board.getSquare(x, y).squarePiece
-				if piece:
-					if piece.color == PURPLE:
-						purple_pieces += 1
-						if piece.king:
-							purple_kings += 1
-							pos = (x, y)
-							if pos not in self.kings['purple']:
-								self.kings['purple'].add(pos)
-								self.current_score['purple'] += 50  # Bonus for new king
-					else:
-						grey_pieces += 1
-						if piece.king:
-							grey_kings += 1
-							pos = (x, y)
-							if pos not in self.kings['grey']:
-								self.kings['grey'].add(pos)
-								self.current_score['grey'] += 50  # Bonus for new king
-		# Update scores (8 points per piece)
-		self.purple_score = purple_pieces * 8 + len(self.kings['purple']) * 50 + self.captured_pieces['purple'] * 8
-		self.grey_score = grey_pieces * 8 + len(self.kings['grey']) * 50 + self.captured_pieces['grey'] * 8
-		# Calculate probabilities based on piece count and position
-		total_pieces = max(purple_pieces + grey_pieces, 1)
-		base_purple_prob = (purple_pieces / total_pieces) * 100
-		base_grey_prob = (grey_pieces / total_pieces) * 100
-		# Adjust probabilities based on kings and captures
-		king_factor = (purple_kings - grey_kings) * 5
-		capture_factor = (self.captured_pieces['purple'] - self.captured_pieces['grey']) * 2
-		# Calculate final probabilities (rounded to nearest integer)
-		self.purple_prob = min(max(int(base_purple_prob + king_factor + capture_factor), 5), 95)
-		self.grey_prob = 100 - self.purple_prob
-	def calculate_position_bonus(self):
-		bonus = 0
-		for x in range(8):
-			for y in range(8):
-				piece = self.board.getSquare(x, y).squarePiece
-				if piece:
-					if piece.color == PURPLE:
-						if y > 4:  # Advanced position
-							bonus += 0.1
-						if piece.king and y > 5:  # Advanced king
-							bonus += 0.2
-					else:
-						if y < 3:  # Advanced position
-							bonus -= 0.1
-						if piece.king and y < 2:  # Advanced king
-							bonus -= 0.2
-		return max(min(bonus, 1), -1)  # Normalize between -1 and 1
-	def update_capture(self, capturing_color):
-		self.captured_pieces[capturing_color.lower()] += 1
-		self.current_score[capturing_color.lower()] += 8  # 8 points for
-
 	def update_scores_and_probability(self, capturing_color):
-		 # Use captures to track how many pieces each side has taken
-		if capturing_color == PURPLE:
-			self.purple_captures += 1
-		else:
-			self.grey_captures += 1
+			# Use captures to track how many pieces each side has taken
+			if capturing_color == PURPLE:
+				self.purple_captures += 1
+			else:
+				self.grey_captures += 1
 
-		# Recount how many pieces each side still has
-		purple_pieces = 0
-		grey_pieces = 0
-		for x in range(8):
-			for y in range(8):
-				piece = self.board.getSquare(x, y).squarePiece
-				if piece:
-					if piece.color == PURPLE:
-						purple_pieces += 1
-					else:
-						grey_pieces += 1
+			# Recount how many pieces each side still has
+			purple_pieces = 0
+			grey_pieces = 0
+			for x in range(8):
+				for y in range(8):
+					piece = self.board.getSquare(x, y).squarePiece
+					if piece:
+						if piece.color == PURPLE:
+							purple_pieces += 1
+						else:
+							grey_pieces += 1
 
-		# Final score = pieces on board + captures×8
-		self.purple_score = self.purple_captures * 8
-		self.grey_score = self.grey_captures * 8
+			# Final score = pieces on board + captures×8
+			self.purple_score = self.purple_captures * 8
+			self.grey_score = self.grey_captures * 8
 
-		# Probability = ratio of scores
-		total = max(self.purple_score + self.grey_score, 1)
-		self.purple_prob = int((self.purple_score / total) * 100)
-		self.grey_prob = 100 - self.purple_prob
-		print(f"[LOG] Scores => Purple: {self.purple_score}, Grey: {self.grey_score}")
-		print(f"[LOG] Probability => Purple: {self.purple_prob}%, Grey: {self.grey_prob}%")
+			# Probability = ratio of scores
+			total = max(self.purple_score + self.grey_score, 1)
+			self.purple_prob = int((self.purple_score / total) * 100)
+			self.grey_prob = 100 - self.purple_prob
+			
+			print(f"[LOG] Scores => Purple: {self.purple_score}, Grey: {self.grey_score}")
+			print(f"[LOG] Probability => Purple: {self.purple_prob}%, Grey: {self.grey_prob}%")

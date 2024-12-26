@@ -103,17 +103,20 @@ class Bot:
             
             # If it was a capture
             if final_pos not in board.getAdjacentSquares(current_pos[0], current_pos[1]):
-                board.remove_piece(
-                    current_pos[0] + (final_pos[0] - current_pos[0]) // 2,
-                    current_pos[1] + (final_pos[1] - current_pos[1]) // 2
-                )
+                capture_x = current_pos[0] + (final_pos[0] - current_pos[0]) // 2
+                capture_y = current_pos[1] + (final_pos[1] - current_pos[1]) // 2
+                board.remove_piece(capture_x, capture_y)
+                
+                # Update scores and probability after capture
+                self.game.update_scores_and_probability(self.color)
                 
                 # Check for additional captures
                 new_moves = board.get_valid_legal_moves(final_pos[0], final_pos[1], True)
-                if not new_moves:  # No more captures available
-                    self.game.end_turn()
-            else:  # Regular move (no capture)
-                self.game.end_turn()
+                if new_moves:  # More captures available
+                    self.move(final_pos, new_moves[0], board)  # Continue with additional capture
+                    return
+            
+            self.game.end_turn()
         else:
             self.game.end_turn()
 
