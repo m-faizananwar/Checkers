@@ -234,7 +234,6 @@ class Graphics:
 		if hasattr(pygame, 'game_instance'):  # Just an example approach
 			g = pygame.game_instance
 			self.draw_sideboard(g.purple_score, g.grey_score, g.purple_prob, g.grey_prob)
-			print(g.purple_score, g.grey_score, g.purple_prob, g.grey_prob)
 		else:
 			self.draw_sideboard(0, 0, 50, 50)
 

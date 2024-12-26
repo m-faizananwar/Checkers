@@ -1,66 +1,94 @@
-# We have used the Minimax algorithm with Alpha-Beta pruning to determine the best move.
 from copy import deepcopy
-PURPLE = (178, 102, 255)  
+import random
+PURPLE = (178, 102, 255)
+
+def evaluate_position(board, color):
+    # Simple evaluation based on piece count and position
+    purple_score = grey_score = 0
+    for x in range(8):
+        for y in range(8):
+            piece = board.getSquare(x, y).squarePiece
+            if piece:
+                base_score = 10
+                if piece.color == PURPLE:
+                    purple_score += base_score + (y * 0.5)
+                else:
+                    grey_score += base_score + ((7-y) * 0.5)
+    return purple_score - grey_score if color == PURPLE else grey_score - purple_score
+
 def group1(self, board):
-    if self.game.turn != self.color:  # Only move if it's this AI's turn
+    if self.game.turn != self.color:
         return None, None
 
-    tr_table = {}
-    def minimax(board, depth, alpha, beta, max_player):
-        board_hash = hash(str(board.matrix))  
-        if board_hash in tr_table and tr_table[board_hash][1] >= depth:
-            return tr_table[board_hash][0], None, None
-
+    def minimax(board, depth, alpha, beta, maximizing_player, moves_list):
         if depth == 0 or self.endGameCheck(board):
-            eval = self._current_eval(board)
-            tr_table[board_hash] = (eval, depth)
-            return eval, None, None
+            return evaluate_position(board, self.color), None, None
 
-        if max_player:
+        if maximizing_player:
             max_eval = float('-inf')
             best_move = None
-            for row, col, possible_moves in self.generatemove_at_a_time(board):  
-                current_pos = (row, col)  
-                possible_moves.sort(key=lambda move: abs(move[0] - 7) if self.color == PURPLE 
-                                     else abs(move[0] - 0), reverse=True)  
+            moves = list(self.generatemove_at_a_time(board))
+            random.shuffle(moves)  # Add randomization to move selection
+            
+            for row, col, possible_moves in moves:
                 for final_pos in possible_moves:
-                    # Apply the move
+                    move_key = (row, col, final_pos)
+                    if move_key in moves_list[-4:]:  # Avoid recent moves
+                        continue
+                        
                     new_board = deepcopy(board)
                     new_board.move_piece(row, col, final_pos[0], final_pos[1])
-                    eval, _, _ = minimax(new_board, depth-1, alpha, beta, False)
-                    if eval > max_eval:
-                        max_eval = eval
-                        best_move = (current_pos, final_pos)
-                    alpha = max(alpha, eval)
+                    eval_score, _, _ = minimax(new_board, depth-1, alpha, beta, False, moves_list + [move_key])
+                    
+                    if eval_score > max_eval:
+                        max_eval = eval_score
+                        best_move = (row, col), final_pos
+                        
+                    alpha = max(alpha, eval_score)
                     if beta <= alpha:
                         break
-            tr_table[board_hash] = (max_eval, depth)
-            return max_eval, best_move[0], best_move[1] if best_move else (None, None)
+                        
+            return max_eval, best_move[0] if best_move else None, best_move[1] if best_move else None
         else:
             min_eval = float('inf')
             best_move = None
-            for row, col, possible_moves in self.generatemove_at_a_time(board):
-                current_pos = (row, col)
+            moves = list(self.generatemove_at_a_time(board))
+            random.shuffle(moves)
+            
+            for row, col, possible_moves in moves:
                 for final_pos in possible_moves:
-                    # Apply the move
+                    move_key = (row, col, final_pos)
+                    if move_key in moves_list[-4:]:
+                        continue
+                        
                     new_board = deepcopy(board)
                     new_board.move_piece(row, col, final_pos[0], final_pos[1])
-                    eval, _, _ = minimax(new_board, depth-1, alpha, beta, True)
-                    if eval < min_eval:
-                        min_eval = eval
-                        best_move = (current_pos, final_pos)
-                    beta = min(beta, eval)
+                    eval_score, _, _ = minimax(new_board, depth-1, alpha, beta, True, moves_list + [move_key])
+                    
+                    if eval_score < min_eval:
+                        min_eval = eval_score
+                        best_move = (row, col), final_pos
+                        
+                    beta = min(beta, eval_score)
                     if beta <= alpha:
                         break
-            tr_table[board_hash] = (min_eval, depth)
-            return min_eval, best_move[0], best_move[1] if best_move else (None, None)
+                        
+            return min_eval, best_move[0] if best_move else None, best_move[1] if best_move else None
+
+    # Initialize move history if not exists
+    if not hasattr(self, 'recent_moves'):
+        self.recent_moves = []
+        
+    # Run minimax with depth 4
+    _, current_pos, final_pos = minimax(board, 4, float('-inf'), float('inf'), True, self.recent_moves)
     
-    _, current_pos, final_pos = minimax(board, self.depth, float('-inf'), float('inf'), True)
-
-    if current_pos is None or final_pos is None:
-        return None, None
-
-    # Validate move
-    if final_pos in board.get_valid_legal_moves(current_pos[0], current_pos[1], self.game.continue_playing):
-        return current_pos, final_pos
+    if current_pos and final_pos:
+        # Add move to history
+        self.recent_moves.append((current_pos[0], current_pos[1], final_pos))
+        self.recent_moves = self.recent_moves[-8:]  # Keep last 8 moves
+        
+        # Validate and return move
+        if final_pos in board.get_valid_legal_moves(current_pos[0], current_pos[1], self.game.continue_playing):
+            return current_pos, final_pos
+            
     return None, None

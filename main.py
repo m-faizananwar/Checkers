@@ -218,7 +218,14 @@ class MethodSelectionWindowSingle(QWidget):
         algorithm_label = QLabel('Choose algorithm:')
         algorithm_label.setStyleSheet('font-size:16px; color:#FFFFFF')
         self.algorithm_combo = QComboBox()
-        self.algorithm_combo.addItems(['group1', 'group2'])
+        # Update with difficulty labels
+        self.algorithm_choices = {
+            'Easy (Random)': 'group2',
+            'Medium (Minimax)': 'group1',
+            'Hard (Alpha-Beta)': 'group3',
+            'Extra Hard (Expectimax)': 'group4'
+        }
+        self.algorithm_combo.addItems(list(self.algorithm_choices.keys()))
         self.algorithm_combo.setStyleSheet('color:black')
         self.algorithm_combo.setFixedSize(500, 40)
         computer_column.addWidget(algorithm_label)
@@ -257,7 +264,8 @@ class MethodSelectionWindowSingle(QWidget):
         self.setLayout(main_layout)
 
     def start_game(self):
-        ai_method = self.algorithm_combo.currentText()
+        selected_text = self.algorithm_combo.currentText()
+        ai_method = self.algorithm_choices[selected_text]
         self.close()
         play_game_player_vs_ai(ai_method)
 
@@ -304,8 +312,16 @@ class MethodSelectionWindowDouble(QWidget):
 
         algorithm_label = QLabel('Choose algorithm:')
         algorithm_label.setStyleSheet('font-size:16px; color:#FFFFFF')
+        self.algorithm_choices = {
+            'Easy (Random)': 'group2',
+            'Medium (Minimax)': 'group1',
+            'Hard (Alpha-Beta)': 'group3',
+            'Extra Hard (Expectimax)': 'group4'
+        }
+        
+        # Purple bot combo
         self.algorithm_combo_purple = QComboBox()
-        self.algorithm_combo_purple.addItems(['group1', 'group2'])
+        self.algorithm_combo_purple.addItems(list(self.algorithm_choices.keys()))
         self.algorithm_combo_purple.setStyleSheet('color:black')
         self.algorithm_combo_purple.setFixedSize(500, 40)
 
@@ -322,7 +338,7 @@ class MethodSelectionWindowDouble(QWidget):
         algorithm_label1 = QLabel('Choose algorithm:')
         algorithm_label1.setStyleSheet('font-size:16px; color:#FFFFFF')
         self.algorithm_combo_grey = QComboBox()
-        self.algorithm_combo_grey.addItems(['group1', 'group2'])
+        self.algorithm_combo_grey.addItems(list(self.algorithm_choices.keys()))
         self.algorithm_combo_grey.setStyleSheet('color:black')
         self.algorithm_combo_grey.setFixedSize(500, 40)
         agent_column.addWidget(algorithm_label1)
@@ -353,8 +369,10 @@ class MethodSelectionWindowDouble(QWidget):
         self.setLayout(main_layout)
 
     def start_game(self):
-        method1 = self.algorithm_combo_purple.currentText()
-        method2 = self.algorithm_combo_grey.currentText()
+        purple_text = self.algorithm_combo_purple.currentText()
+        grey_text = self.algorithm_combo_grey.currentText()
+        method1 = self.algorithm_choices[purple_text]
+        method2 = self.algorithm_choices[grey_text]
         self.close()
         play_game_ai_vs_ai(method1, method2)
 

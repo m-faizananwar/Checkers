@@ -6,6 +6,8 @@ pygame.font.init()
 
 from group1 import group1
 from group2 import group2
+from group3 import group3  # Add this
+from group4 import group4  # Add this
 
 GREY = (128, 128, 128)
 PURPLE = (178, 102, 255)
@@ -54,6 +56,10 @@ class Bot:
             self.group1(board)
         elif self.method == 'group2':
             self.group2(board)
+        elif self.method == 'group3':  # Add this
+            self.group3(board)
+        elif self.method == 'group4':  # Add this
+            self.group4(board)
 
     def getPossibleMoves(self, board):
         possible_moves = []
@@ -91,6 +97,25 @@ class Bot:
             self.game.end_turn()
         return
     
+    def group3(self, board):  # Add this
+        if self.game.turn != self.color:
+            return
+        current_pos, final_pos = group3(self, board)
+        if current_pos and final_pos:
+            self.move(current_pos, final_pos, board)
+        else:
+            self.game.end_turn()
+        return
+
+    def group4(self, board):  # Add this
+        if self.game.turn != self.color:
+            return
+        current_pos, final_pos = group4(self, board)
+        if current_pos and final_pos:
+            self.move(current_pos, final_pos, board)
+        else:
+            self.game.end_turn()
+        return
 
     def move(self, current_pos, final_pos, board):
         if current_pos is None or final_pos is None:
